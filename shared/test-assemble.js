@@ -44,8 +44,8 @@ async function uploadingChunks(){
 
 const reassemble = async ()=>{
     const hashes = await uploadingChunks();
-    await reassembleFile(hashes,path.join(__dirname,"..","reassembled"));
-    const reassembled = fs.readFileSync(path.join(__dirname, "..", "reassembled"));
+    await reassembleFile(hashes,path.join(__dirname,"..","reassembled.bin"));
+    const reassembled = fs.readFileSync(path.join(__dirname, "..", "reassembled.bin"));
 const original = fs.readFileSync(path.join(__dirname, "..", "shared", "__test_hash.bin"));
 
 const result = Buffer.compare(original,reassembled);
