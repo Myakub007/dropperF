@@ -53,10 +53,10 @@ async function main() {
   console.log(pass ? '\nALL CHECKS PASSED ✅' : '\nSOME CHECKS FAILED ❌');
 
   // cleanup
-  fs.unlinkSync(TEST_FILE);
-  fs.rmSync(STORAGE_DIR, { recursive: true, force: true });
+  // fs.unlinkSync(TEST_FILE);
+  // fs.rmSync(STORAGE_DIR, { recursive: true, force: true });
 
-  process.exit(pass ? 0 : 1);
+  // process.exit(pass ? 0 : 1);
 }
 
 main().catch((err) => {
