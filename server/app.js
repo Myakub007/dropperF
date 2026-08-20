@@ -200,8 +200,48 @@ app.post('/auth/register',async (req,res)=>{
     }
 })
 
+app.get('/tree',(req,res)=>{
+    try{
+        const result = await pool.query(
+            'SELECT id,path FROM files WHERE user_id = $1',[req.userId]
+        )
 
+        const root = {name:'/',type: 'folder',children:{}};
 
+        for (const file of result.rows){
+            const parts = file.path.split('/').filter(Boolean) // removes empty strings
+            let current = root;
+
+            parts.forEach((part,index)=>{
+                const isFile = index === parts.length -1;
+
+                if(isFile){
+                    current.children[part] = {name: part,type:'file',id: file.id,path:file.path};
+                }else{
+                    if(!current.children[part]){
+                        current.children[part] = {name: part,type:'folder',children:{}}
+                    }
+
+                    current = current.children[part];
+                }
+            })
+        }
+
+        const toArray = (node)=>{
+            if(node.type === 'file') return node;
+            return{
+                name: node.name,
+                type: 'folder',
+                children:Object.values(node.children).map(toArray)
+            }
+        }
+
+        res.json({success: true,tree: toArray(root)});
+    }catch(err){
+        console.error(err);
+        res.status(500).json({success:false,message:'something went wrong!'});
+    }
+})
 
 app.listen(3000,()=>{
     console.log("server running....");
