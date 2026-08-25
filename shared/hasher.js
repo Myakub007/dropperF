@@ -3,7 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { chunkFile } = require('./chunkGen');
 
-const Storage_Dir = path.join(__dirname,'..','storage');
+const Storage_Dir = path.join(__dirname,'..','server/server-storage');
 
 
 function hashChunk(buffer){

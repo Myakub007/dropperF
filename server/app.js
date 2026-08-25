@@ -13,8 +13,8 @@ app.use(express.urlencoded({extended:true}));
 
 function requireAuth(req,res,next){
     const authHeader = req.headers.authorization;
-
-    if(!authHeader || !authHeader.startswith('Bearer ')){
+    console.log('DEBUG authHeader:', authHeader, typeof authHeader); // ADD THIS
+    if(!authHeader || !authHeader.startsWith('Bearer ')){
         return res.status(401).json({success:false,message:'no token provided'});
     }
 
@@ -29,7 +29,7 @@ function requireAuth(req,res,next){
     }
 }
 
-app.get("/health",requireAuth, async (req,res)=>{
+app.get("/health", async (req,res)=>{
         try{
         await pool.connect();
         const dbres = await pool.query("SELECT NOW()");
@@ -85,7 +85,8 @@ app.post("/chunks/:hash",requireAuth,express.raw({type:"application/octet-stream
 app.post('/files',requireAuth,async (req,res)=>{
 
     try{
-        const {path,hashes,userId} = req.body; 
+        const {path,hashes} = req.body; 
+        const userId = req.userId;
     
         const existing = await pool.query(
             'SELECT id FROM files WHERE user_id = $1 and path = $2',
@@ -200,11 +201,12 @@ app.post('/auth/register',async (req,res)=>{
     }
 })
 
-app.get('/tree',(req,res)=>{
+app.get('/tree',requireAuth,async (req,res)=>{
     try{
         const result = await pool.query(
-            'SELECT id,path FROM files WHERE user_id = $1',[req.userId]
+            'SELECT f.id,f.path,fv.hash_array FROM files f LEFT JOIN file_versions fv ON fv.file_id = f.id WHERE f.user_id = $1 ORDER BY fv.created_at DESC',[req.userId]
         )
+        console.log("DEBUG rows:", result.rows);
 
         const root = {name:'/',type: 'folder',children:{}};
 
@@ -216,7 +218,7 @@ app.get('/tree',(req,res)=>{
                 const isFile = index === parts.length -1;
 
                 if(isFile){
-                    current.children[part] = {name: part,type:'file',id: file.id,path:file.path};
+                    current.children[part] = {name: part,type:'file',id: file.id,path:file.path,hashes:file.hash_array};
                 }else{
                     if(!current.children[part]){
                         current.children[part] = {name: part,type:'folder',children:{}}

@@ -11,6 +11,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "better-sqlite3": "^13.0.3"
+    "axios": "^1.19.0",
+    "better-sqlite3": "^13.0.3",
+    "chokidar": "^5.0.0"
   }
 }
