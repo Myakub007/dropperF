@@ -4,11 +4,11 @@ const chokidar = require('chokidar');
 const { chunkFile } = require('../shared/chunkGen');
 const { hashChunk } = require('../shared/hasher');
 const {chunkExistsOnServer,uploadChunk} = require('./upload');
-const { saveFileState} = require('./state');
+const { saveFileState, deleteFileState} = require('./state');
 const axios = require('axios');
 
 const WATCH_DIR = './watched-folder';
-const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc4NzY3NzUwNiwiZXhwIjoxNzg4MjgyMzA2fQ.TKx0G5lS3p-fXgz9Ta_T1bu0G4TyaPYmY8eCvIf9F_Q";
+const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc4Nzg0Njc0MSwiZXhwIjoxNzg4NDUxNTQxfQ.zy2HlibOe0BCgfUOnZAzSAsovOqb4cvECMZWxZKxaZc";
 const API_BASE = 'http://localhost:3000';
 
 const watcher = chokidar.watch(WATCH_DIR);
@@ -52,6 +52,18 @@ async function handleFileEvent(filePath) {
 
 watcher.on('add',handleFileEvent);
 watcher.on('change',handleFileEvent);
-watcher.on('unlink',filePath=>{
-    console.log('File deleted:' , filePath);
+watcher.on('unlink',async (filePath)=>{
+    const relativePath = '/' + path.relative(WATCH_DIR,filePath).replace(/\\/g,'/');
+    console.log('File deleted: ',relativePath);
+
+    deleteFileState(relativePath);
+    try{
+        await axios.delete(`${API_BASE}/files`,{
+            headers:{Authorization:`Bearer ${TOKEN}`},
+            data:{path:relativePath}
+        })
+        console.log('server notified of deletion');
+    }catch(err){
+        console.error('Failed to notify server:',err.message)
+    }
 });

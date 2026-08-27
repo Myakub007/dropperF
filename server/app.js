@@ -155,6 +155,27 @@ app.get('/files/:id',requireAuth,async (req,res)=>{
     }
 })
 
+app.delete('/files',requireAuth,async(req,res)=>{
+    try{
+        const {path} = req.body;
+        const userId = req.userId;
+
+        const result = await pool.query(
+            'DELETE FROM files WHERE user_id = $1 AND path = $2 RETURNING id',[userId,path]
+        );
+        if(result.rows.length === 0 ){
+            return res.status(404).send({success:false,message:'file not found'});
+        }
+
+        res.json({success:true,message: 'file deleted!'});
+
+
+    }catch(err){
+        console.error(err.message);
+    }
+})
+
+
 app.post('/auth/login', async (req,res)=>{
     try {
         const {email,password} = req.body;
@@ -244,6 +265,11 @@ app.get('/tree',requireAuth,async (req,res)=>{
         res.status(500).json({success:false,message:'something went wrong!'});
     }
 })
+
+
+
+
+
 
 app.listen(3000,()=>{
     console.log("server running....");
