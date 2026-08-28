@@ -2,3 +2,7 @@
 .env
 pgdata/
 **.bin
+server-storage
+**.mp4
+**watched-folder
+**watched-folder-2
