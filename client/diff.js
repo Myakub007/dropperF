@@ -3,7 +3,7 @@ const path = require('path');
 const { getKnownState } = require('./state');
 const { chunkAndStoreFile } = require('../shared/hasher');
 
-const WATCH_DIR = './watched-folder';
+const WATCH_DIR = process.env.WATCH_DIR || './watched-folder';
 
 function scanCurrentState(dir, baseDir = dir){
     const results = {};

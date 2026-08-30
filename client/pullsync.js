@@ -23,6 +23,11 @@ function diffAgainstServer(serverTree){
 
     for(const file of serverFiles){
         const local = known[file.path];
+    //     if (file.path.includes('conflicted copy')) {
+    //     console.log('DEBUG conflict-path check:', file.path);
+    //     console.log('  server hashes:', file.hashes);
+    //     console.log('  local known:', local);
+    // }
 
         if(!local){
             needsDownload.push(file);
@@ -35,6 +40,10 @@ function diffAgainstServer(serverTree){
     }
 
     for (const localPath of Object.keys(known)){
+        if(localPath.includes('(conflicted copy)')){
+            continue;
+        }
+
         if(!serverPaths.has(localPath)){
             needsDelete.push(localPath)
         }

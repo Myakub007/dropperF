@@ -2,7 +2,7 @@
 const { diff, scanCurrentState } = require('./diff');
 const { getKnownState,saveFileState,deleteFileState } = require('./state');
 
-const WATCH_DIR = './watched-folder';
+const WATCH_DIR = process.env.WATCH_DIR || './watched-folder';
 
 function commitState(){
     const current = scanCurrentState(WATCH_DIR);

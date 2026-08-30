@@ -1,5 +1,6 @@
 const Database = require('better-sqlite3');
-const db = new Database("sync-state.db");
+const dbPath =  process.env.DB_PATH || "sync-state.db";
+const db = new Database(`${dbPath}`);
 
 db.exec(`
     CREATE TABLE IF NOT EXISTS file_state(

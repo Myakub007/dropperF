@@ -225,7 +225,7 @@ app.post('/auth/register',async (req,res)=>{
 app.get('/tree',requireAuth,async (req,res)=>{
     try{
         const result = await pool.query(
-            'SELECT f.id,f.path,fv.hash_array FROM files f LEFT JOIN file_versions fv ON fv.file_id = f.id WHERE f.user_id = $1 ORDER BY fv.created_at DESC',[req.userId]
+            'SELECT DISTINCT ON (f.id) f.id, f.path, fv.hash_array FROM files f LEFT JOIN file_versions fv ON fv.file_id = f.id WHERE f.user_id = $1 ORDER BY f.id, fv.created_at DESC',[req.userId]
         )
         console.log("DEBUG rows:", result.rows);
 
