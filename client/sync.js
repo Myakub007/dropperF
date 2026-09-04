@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const chokidar = require('chokidar');
 const axios = require('axios');
+const WebSocket = require('ws');
 
 const { chunkFile } = require('../shared/chunkGen');
 const { hashChunk } = require('../shared/hasher');
@@ -14,7 +15,7 @@ const { reassembleFile } = require('../shared/reassembler');
 const { getCurrentLocalHashes, fileExistsLocally } = require('./conflictHelper');
 
 const WATCH_DIR = process.env.WATCH_DIR || './watched-folder';
-const TOKEN = process.env.TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc4ODExMzM0NSwiZXhwIjoxNzg4NzE4MTQ1fQ.teVnm4C6eiSq0X_r7wAzKKTmaXFvieN8aSaB3xKU7eI';
+const TOKEN = process.env.TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc4ODU0MTI2MiwiZXhwIjoxNzg5MTQ2MDYyfQ.31phDvl8FN8WLgpfBByMLpEWABJwcqhhj9SRcyT5bI4';
 const API_BASE = 'http://localhost:3000';
 const POLL_INTERVAL_MS = 5000;
 
@@ -24,6 +25,30 @@ let syncBusy = false;
 // ─── PUSH SIDE (from watch-test.js) ───
 
 const watcher = chokidar.watch(WATCH_DIR);
+
+
+function connectWebSocket(){
+    const ws = new WebSocket(`ws://localhost:3000?token=${TOKEN}`)
+
+    ws.on('open',()=>{
+        console.log('WebSocket connected - listening for live updates');
+    })
+
+    ws.on('message',(msg)=>{
+        const event = JSON.parse(msg.toString());
+        console.log('Live event recieved:',event);
+        pollOnce().catch(err=>console.error('Triggered poll failed:',err.message))
+    })
+
+    ws.on('close',()=>{
+        console.log('WebSocket disconnected - reconnecting in 3s...');
+        setTimeout(connectWebSocket,3000);
+    })
+
+    ws.on('error',(err)=>{
+        console.error('WebSocket error:',err.message);
+    })
+}
 
 async function handleFileEvent(filePath) {
     if (syncBusy) {
@@ -142,5 +167,7 @@ async function pollOnce() {
 }
 
 setInterval(() => { pollOnce().catch(err => console.error('Poll failed:', err.message)); }, POLL_INTERVAL_MS);
+
+connectWebSocket();
 
 console.log(`Watching ${WATCH_DIR}, polling every ${POLL_INTERVAL_MS / 1000}s...`);
