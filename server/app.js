@@ -7,11 +7,20 @@ const { type } = require("os");
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const cors = require('cors');
 const url = require('url');
 const { storeChunk, Storage_Dir, hashChunk, readChunk } = require("../shared/hasher");
+const cookieParser = require("cookie-parser");
 
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
+app.use(cors({
+    origin:'http://localhost:5173',
+    methods:['GET','POST','PUT','DELETE'],
+    allowedHeaders:['Content-Type','Authorization','Cookie'],
+    credentials:true
+}))
 
 function broadcastToUser(userId,event){
     const sockets = userSockets.get(userId);
@@ -26,14 +35,19 @@ function broadcastToUser(userId,event){
 }
 
 function requireAuth(req,res,next){
-    const authHeader = req.headers.authorization;
-    console.log('DEBUG authHeader:', authHeader, typeof authHeader); // ADD THIS
-    if(!authHeader || !authHeader.startsWith('Bearer ')){
+    // const authHeader = req.headers.authorization;
+    // if(!authHeader || !authHeader.startsWith('Bearer ')){
+    //     return res.status(401).json({success:false,message:'no token provided'});
+    // }
+    // console.log('DEBUG authHeader:', authHeader, typeof authHeader); // ADD THIS
+    
+    // const token = authHeader.split(' ')[1];
+    const token = req.cookies.Session_token;
+    // console.log(token);
+    if(!token){
         return res.status(401).json({success:false,message:'no token provided'});
     }
-
-    const token = authHeader.split(' ')[1];
-    
+    console.log(token);
     try{
         const payload = jwt.verify(token,process.env.JWT_SECRET);
         req.userId = payload.userId;
@@ -210,9 +224,16 @@ app.post('/auth/login', async (req,res)=>{
             return res.status(401).json({success:false,message:"email/password incorrect!"});
         }
         
-        const token = jwt.sign({userId:user.id},process.env.JWT_SECRET,{expiresIn:'7d'});
+        const token = jwt.sign({userId:user.id},process.env.JWT_SECRET,{expiresIn:'1d'});
 
-        res.json({success:true,token,user:{id:user.id,email:user.email}})
+        res.cookie('Session_token',token,{
+            httpOnly:true,
+            sameSite:'lax',
+            maxAge:3600000*24
+        })
+
+
+        res.json({success:true,message:`cookie set! ${token}`,user:{id:user.id,email:user.email}})
     } catch (err) {
         console.error(err);
         res.status(500).json({success:false,message:'something went wrong!'});
@@ -231,9 +252,14 @@ app.post('/auth/register',async (req,res)=>{
     )
     
     const user = result.rows[0];
-    const token = jwt.sign({userId:user.id},process.env.JWT_SECRET,{expiresIn: "7d"});
+    const token = jwt.sign({userId:user.id},process.env.JWT_SECRET,{expiresIn: "1d"});
 
-    res.status(201).json({success:true,token,user:{id:user.id,email:user.email}});
+    res.cookie('Session_token',token,{
+        httpOnly:true,
+        sameSite:'lax',
+        maxAge: 3600000*24
+    })
+    res.status(201).json({success:true,message:`cookie set! ${token}`,user:{id:user.id,email:user.email}});
 }catch(err){
         console.error(err);
         res.status(500).json({success:false,message:'something went wrong!'});
@@ -289,8 +315,17 @@ app.get('/tree',requireAuth,async (req,res)=>{
 
 
 
-const server = app.listen(3000,()=>{
+const server = app.listen(3000,async ()=>{
     console.log("server running....");
+    try{
+        await pool.connect();
+        const dbres = await pool.query("SELECT NOW()");
+        console.log(dbres.rows[0].now);
+        console.log("connection succesfull");
+    }catch(err){
+        console.log("connection failed");
+        console.error(err);
+    }
 })
 const wss = new WebSocket.Server({server:server});
 
@@ -315,7 +350,7 @@ wss.on('connection',(ws,req)=>{
         ws.close(1008,'Invalid token');
         return;
     }
-    console.log(`WebSocket connected: user ${userId}`);
+    // console.log(`WebSocket connected: user ${userId}`);
 
     if(!userSockets.has(userId)){
         userSockets.set(userId,new Set());

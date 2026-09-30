@@ -3,6 +3,7 @@ import {createBrowserRouter,RouterProvider} from 'react-router-dom'
 import './App.css'
 import Login from './Login';
 import Register from './Register';
+import FileBrowser from './FileBrowser';
 
 function App() {
   const Home = ()=> <h2>Hello!</h2>;
@@ -19,6 +20,10 @@ function App() {
     {
       path:'/auth/register',
       element:<Register/>
+    },
+    {
+      path:'/tree',
+      element:<FileBrowser/>
     }
   ])
   return (
